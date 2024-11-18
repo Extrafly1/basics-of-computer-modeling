@@ -131,3 +131,9 @@ optimal_value = result.fun
 optimal_plan = result.x.reshape((num_sources, num_destinations))
 
 optimal_value, optimal_plan
+print("Оптимальное значение функции цели:", optimal_value)
+print("Оптимальный план закрепления потребителей за постовщиками:")
+for i in range(num_sources):
+    for j in range(num_destinations):
+        print(f"{optimal_plan[i][j]:.0f}", end=' ')
+    print()
