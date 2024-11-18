@@ -1,65 +1,3 @@
-# import numpy as np
-# from scipy.optimize import linprog
-
-# # Пункты поставки (a1, a2, a3, a4)
-# supply = np.array([15, 15, 15, 15])
-
-# # Пункты потребления (b1, b2, b3, b4, b5)
-# demand = np.array([11, 11, 11, 11, 16])
-
-# # Матрица транспортных затрат
-# cost = np.array([
-#     [17, 20, 29, 26, 25],
-#     [3, 4, 5, 15, 24],
-#     [19, 2, 22, 4, 13],
-#     [20, 27, 1, 17, 19]
-# ])
-
-# # Количество поставок и потребностей
-# num_supply = len(supply)
-# num_demand = len(demand)
-
-# # Функция цели (затраты)
-# c = cost.flatten()
-
-# # Ограничения на поставки
-# A_eq = []
-# b_eq = []
-
-# # Добавляем ограничения для поставок
-# for i in range(num_supply):
-#     constraint = np.zeros(num_supply * num_demand)
-#     constraint[i * num_demand:(i + 1) * num_demand] = 1
-#     A_eq.append(constraint)
-#     b_eq.append(supply[i])
-
-# # Добавляем ограничения для потребностей
-# for j in range(num_demand):
-#     constraint = np.zeros(num_supply * num_demand)
-#     for i in range(num_supply):
-#         constraint[i * num_demand + j] = 1
-#     A_eq.append(constraint)
-#     b_eq.append(demand[j])
-
-# # Преобразование в массивы
-# A_eq = np.array(A_eq)
-# b_eq = np.array(b_eq)
-
-# # Ограничения на неотрицательность
-# bounds = [(0, None) for _ in range(num_supply * num_demand)]
-
-# # Решение задачи линейного программирования
-# result = linprog(c, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
-
-# # Вывод результатов
-# if result.success:
-#     print("Оптимальное распределение:")
-#     distribution = result.x.reshape((num_supply, num_demand))
-#     print(distribution)
-#     print("Минимальные затраты:", result.fun)
-# else:
-#     print("Не удалось найти оптимальное решение.")
-
 # решите транспортную задачу. имеются четыре пункта 
 # поставки одного груза A1, A2, A3, A4, в каждом из 
 # которых находиться груз соответственно в количестве 
@@ -79,7 +17,8 @@
 # (19,  2, 22,  4, 13),
 # (20, 27,  1, 17, 19))
 
-from scipy.optimize import linprog
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Данные задачи
 supply = [15, 15, 15, 15]  # Поставки: a1, a2, a3, a4
@@ -123,6 +62,8 @@ b = b_supply + b_demand
 # Границы переменных (неотрицательные поставки)
 x_bounds = [(0, None) for _ in range(num_sources * num_destinations)]
 
+from scipy.optimize import linprog
+
 # Решение задачи линейного программирования
 result = linprog(c, A_eq=A, b_eq=b, bounds=x_bounds, method='highs')
 
@@ -130,10 +71,56 @@ result = linprog(c, A_eq=A, b_eq=b, bounds=x_bounds, method='highs')
 optimal_value = result.fun
 optimal_plan = result.x.reshape((num_sources, num_destinations))
 
-optimal_value, optimal_plan
-print("Оптимальное значение функции цели:", optimal_value)
-print("Оптимальный план закрепления потребителей за постовщиками:")
+# Визуализация оптимального плана в виде тепловой карты
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Создание тепловой карты (heatmap)
+cax = ax.matshow(optimal_plan, cmap="coolwarm", aspect="auto")
+
+# Настройка подписей осей
+ax.set_xticks(np.arange(num_destinations))
+ax.set_yticks(np.arange(num_sources))
+ax.set_xticklabels([f"B{i+1}" for i in range(num_destinations)])
+ax.set_yticklabels([f"A{i+1}" for i in range(num_sources)])
+
+# Добавление цветовой шкалы
+fig.colorbar(cax)
+
+# Отображение значений в ячейках
 for i in range(num_sources):
     for j in range(num_destinations):
-        print(f"{optimal_plan[i][j]:.0f}", end=' ')
-    print()
+        ax.text(j, i, f"{optimal_plan[i][j]:.1f}", ha="center", va="center", color="black")
+
+# Заголовок и метки осей
+ax.set_title("Оптимальный план закрепления потребителей за постовщиками")
+ax.set_xlabel("Пункты потребления")
+ax.set_ylabel("Пункты поставки")
+
+# Показываем график
+plt.tight_layout()
+plt.show()
+
+# Второй график: Распределение затрат на перевозку
+total_costs = np.sum(optimal_plan * np.array(costs))
+
+# Создание графика с затратами
+fig, ax = plt.subplots(figsize=(10, 6))
+bars = []
+
+for i in range(num_sources):
+    for j in range(num_destinations):
+        cost = optimal_plan[i, j] * costs[i][j]
+        bars.append((f"A{i+1} -> B{j+1}", cost))
+
+# Распределение затрат
+labels, costs_values = zip(*bars)
+
+ax.barh(labels, costs_values, color="lightblue")
+ax.set_xlabel("Затраты на перевозку")
+ax.set_title("Распределение затрат на перевозку между пунктами поставки и потребления")
+
+# Добавляем легенду с оптимальным значением функции цели
+ax.legend([f"Оптимальное значение функции цели: {optimal_value:.2f}"], loc="upper right")
+
+plt.tight_layout()
+plt.show()
