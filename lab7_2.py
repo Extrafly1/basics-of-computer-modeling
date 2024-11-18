@@ -5,80 +5,27 @@
 # {3 * x1 + x2 + 2 * x3 <= 12
 # xj >= 0, j = 1, 2, 3.
 
-# import numpy as np
-# from scipy.optimize import linprog
-
-# # Определение коэффициентов функции цели (максимизация)
-# # Изменяем знак на противоположный, так как linprog решает задачу минимизации
-# c = [-3, 4, -1]
-
-# # Определение ограничений
-# # Неравенства в виде Ax <= b
-# A = [
-#     [1, 2, 1],    # x1 + 2*x2 + x3 <= 10
-#     [2, 1, 2],    # 2*x1 + x2 + 2*x3 <= 6
-#     [3, 1, 2]     # 3*x1 + x2 + 2*x3 <= 12
-# ]
-
-# b = [10, 6, 12]
-
-# # Ограничения на неотрицательность переменных
-# x_bounds = (0, None)  # xj >= 0, j = 1, 2, 3
-
-# # Решение задачи линейного программирования
-# result = linprog(c, A_ub=A, b_ub=b, bounds=[x_bounds]*3, method='highs')
-
-# # Проверка результатов
-# if result.success:
-#     print("Оптимальное значение функции цели:", -result.fun)  # Изменяем знак обратно
-#     print("Оптимальные значения переменных:")
-#     print("x1 =", result.x[0])
-#     print("x2 =", result.x[1])
-#     print("x3 =", result.x[2])
-# else:
-#     print("Задача не имеет решения.")
-
 import numpy as np
+import matplotlib.pyplot as plt
 
 def simplex_method(c, A, b):
-    """
-    Реализация симплексного метода для решения задачи линейного программирования.
-    max z = c @ x при ограничениях Ax <= b и x >= 0.
-
-    Args:
-        c (array): Коэффициенты целевой функции.
-        A (array): Матрица коэффициентов ограничений.
-        b (array): Вектор правых частей ограничений.
-
-    Returns:
-        tuple: Оптимальное значение целевой функции и вектор решения.
-    """
-    # Размеры задачи
     num_constraints, num_vars = A.shape
-    
-    # Расширяем A, c для учета базисных переменных
     A = np.hstack([A, np.eye(num_constraints)])
     c = np.hstack([c, np.zeros(num_constraints)])
     basis = list(range(num_vars, num_vars + num_constraints))
 
     while True:
-        # Определение коэффициентов при свободных переменных
         B = A[:, basis]
         cb = c[basis]
-        
-        # Текущие оценки
         pi = np.linalg.inv(B) @ cb
         z = c - pi @ A
         
-        # Проверка оптимальности
-        if all(z >= 0):  # Если все коэффициенты неотрицательные, решение оптимально
+        if all(z >= 0):
             break
 
-        # Выбор входящей переменной (максимально отрицательный коэффициент)
         entering = np.argmin(z)
         column = A[:, entering]
 
-        # Проверяем на неограниченность
         ratios = []
         for i in range(num_constraints):
             if column[i] > 0:
@@ -89,13 +36,9 @@ def simplex_method(c, A, b):
         if all(np.isinf(ratios)):
             raise ValueError("Задача не имеет ограниченного решения.")
 
-        # Выбор выходной переменной
         leaving = np.argmin(ratios)
         
-        # Обновляем базис
         basis[leaving] = entering
-
-        # Обновляем правую часть b
         pivot = column[leaving]
         b[leaving] /= pivot
         A[leaving, :] /= pivot
@@ -105,15 +48,13 @@ def simplex_method(c, A, b):
                 b[i] -= factor * b[leaving]
                 A[i, :] -= factor * A[leaving, :]
 
-    # Оптимальное значение
     x = np.zeros(len(c))
     for i, var in enumerate(basis):
         x[var] = b[i]
     
     return c @ x, x[:num_vars]
 
-
-# Коэффициенты задачи
+# Заданные параметры
 c = np.array([-3, 4, -1])  # Целевая функция
 A = np.array([
     [1, 2, 1],
@@ -122,7 +63,40 @@ A = np.array([
 ])  # Ограничения
 b = np.array([10, 6, 12])  # Правые части
 
-# Решение
 optimal_value, solution = simplex_method(c, A, b)
 print(f"Оптимальное значение целевой функции: {optimal_value}")
 print(f"Оптимальное решение: {solution}")
+
+# Визуализация
+x1_range = np.linspace(0, 6, 100)
+x2_range = np.linspace(0, 6, 100)
+
+# Построим ограничения на плоскости x1, x2
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# График ограничений
+ax.plot(x1_range, (10 - x1_range) / 2, label=r'$x_1 + 2x_2 \leq 10$', color='b')
+ax.plot(x1_range, (6 - 2 * x1_range) / 2, label=r'$2x_1 + x_2 \leq 6$', color='g')
+ax.plot(x1_range, (12 - 3 * x1_range) / 2, label=r'$3x_1 + x_2 \leq 12$', color='r')
+
+# Оформление
+ax.set_xlim(0, 6)
+ax.set_ylim(0, 6)
+ax.set_xlabel(r'$x_1$')
+ax.set_ylabel(r'$x_2$')
+ax.set_title('График ограничений и области допустимых решений')
+
+# Отображаем область допустимых решений
+ax.fill_between(x1_range, 0, (10 - x1_range) / 2, where=(10 - x1_range) / 2 >= 0, color='gray', alpha=0.3)
+ax.fill_between(x1_range, 0, (6 - 2 * x1_range) / 2, where=(6 - 2 * x1_range) / 2 >= 0, color='gray', alpha=0.3)
+ax.fill_between(x1_range, 0, (12 - 3 * x1_range) / 2, where=(12 - 3 * x1_range) / 2 >= 0, color='gray', alpha=0.3)
+
+# Точка оптимума
+ax.plot(solution[0], solution[1], 'ro', label=f"Оптимум: ({solution[0]:.2f}, {solution[1]:.2f})")
+
+# Легенда
+ax.legend(loc='upper right')
+
+plt.tight_layout()
+plt.show()
+
