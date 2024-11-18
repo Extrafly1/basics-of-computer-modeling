@@ -51,27 +51,78 @@ def simplex_method(c, A, b):
         b (array): Вектор правых частей ограничений.
 
     Returns:
-        Оптимальное значение целевой функции и вектор решения.
+        tuple: Оптимальное значение целевой функции и вектор решения.
     """
-    # Добавляем искусственные переменные
+    # Размеры задачи
     num_constraints, num_vars = A.shape
+    
+    # Расширяем A, c для учета базисных переменных
     A = np.hstack([A, np.eye(num_constraints)])
     c = np.hstack([c, np.zeros(num_constraints)])
     basis = list(range(num_vars, num_vars + num_constraints))
 
-    # Итеративный процесс
     while True:
         # Определение коэффициентов при свободных переменных
+        B = A[:, basis]
         cb = c[basis]
-        z = cb @ A[:, basis] @ np.linalg.inv(A[:, basis]) @ A - c
-        z_j = z[:-1]
-
+        
+        # Текущие оценки
+        pi = np.linalg.inv(B) @ cb
+        z = c - pi @ A
+        
         # Проверка оптимальности
-        if all(z_j <= 0):
+        if all(z >= 0):  # Если все коэффициенты неотрицательные, решение оптимально
             break
 
-        # Выбор входящей переменной (максимальный положительный z_j)
-        entering = np.argmax(z_j)
+        # Выбор входящей переменной (максимально отрицательный коэффициент)
+        entering = np.argmin(z)
         column = A[:, entering]
 
+        # Проверяем на неограниченность
+        ratios = []
+        for i in range(num_constraints):
+            if column[i] > 0:
+                ratios.append(b[i] / column[i])
+            else:
+                ratios.append(np.inf)
 
+        if all(np.isinf(ratios)):
+            raise ValueError("Задача не имеет ограниченного решения.")
+
+        # Выбор выходной переменной
+        leaving = np.argmin(ratios)
+        
+        # Обновляем базис
+        basis[leaving] = entering
+
+        # Обновляем правую часть b
+        pivot = column[leaving]
+        b[leaving] /= pivot
+        A[leaving, :] /= pivot
+        for i in range(num_constraints):
+            if i != leaving:
+                factor = A[i, entering]
+                b[i] -= factor * b[leaving]
+                A[i, :] -= factor * A[leaving, :]
+
+    # Оптимальное значение
+    x = np.zeros(len(c))
+    for i, var in enumerate(basis):
+        x[var] = b[i]
+    
+    return c @ x, x[:num_vars]
+
+
+# Коэффициенты задачи
+c = np.array([-3, 4, -1])  # Целевая функция
+A = np.array([
+    [1, 2, 1],
+    [2, 1, 2],
+    [3, 1, 2]
+])  # Ограничения
+b = np.array([10, 6, 12])  # Правые части
+
+# Решение
+optimal_value, solution = simplex_method(c, A, b)
+print(f"Оптимальное значение целевой функции: {optimal_value}")
+print(f"Оптимальное решение: {solution}")
