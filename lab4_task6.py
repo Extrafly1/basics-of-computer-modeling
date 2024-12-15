@@ -2,6 +2,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
+import random
 
 seed = 1
 
@@ -43,7 +44,7 @@ def normal_distribution(mu, sigma, N):
 def generate_samples(N, a, b, lmbda, mu, sigma):
     uniform_sample = uniform_distribution(a, b, N)
     exp_sample = exponential_distribution(1/lmbda, N)
-    normal_sample = normal_distribution(mu, sigma, N)  # используем стандартный метод для нормального распределения
+    normal_sample = normal_distribution(mu, sigma, N)
     return uniform_sample, exp_sample, normal_sample
 
 # Параметры распределений

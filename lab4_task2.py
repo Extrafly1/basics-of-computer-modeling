@@ -44,17 +44,17 @@ def calculate_statistics(data):
 
 def main():
     N = 1000
-    a, b = 0, 10
+    a, b = 6, 11
     uniform_samples = uniform_distribution(a, b, N)
     uniform_mean, uniform_variance = calculate_statistics(uniform_samples)
     print(f"Uniform Distribution: Mean = {uniform_mean:.2f}, Variance = {uniform_variance:.2f}")
 
-    lmbda = 1
+    lmbda = 3
     exponential_samples = exponential_distribution(lmbda, N)
     exponential_mean, exponential_variance = calculate_statistics(exponential_samples)
     print(f"Exponential Distribution: Mean = {exponential_mean:.2f}, Variance = {exponential_variance:.2f}")
 
-    mu, sigma = 0, 1
+    mu, sigma = 1, 5
     normal_samples = normal_distribution(mu, sigma, N)
     normal_mean, normal_variance = calculate_statistics(normal_samples)
     print(f"Normal Distribution: Mean = {normal_mean:.2f}, Variance = {normal_variance:.2f}")
